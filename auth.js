@@ -20,23 +20,42 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const storage = getStorage(app);
 
-// ✅ Function to upload image and return its URL
-async function uploadImage(photoFile, userUid) {
+// Function to upload image and return its URL
+async function uploadImageToCloudinary(photoFile) {
   try {
-    console.log("Uploading photo...");
-    const photoRef = ref(storage, `user_photos/${userUid}`);
-    await uploadBytes(photoRef, photoFile);
-    const photoURL = await getDownloadURL(photoRef);
-    console.log("Photo uploaded:", photoURL);
-    return photoURL; // ✅ Return the photoURL
+    console.log("Uploading photo to Cloudinary...");
+
+    // Convert image file to FormData
+    const formData = new FormData();
+    formData.append("file", photoFile);
+    formData.append("upload_preset", "my_upload_preset"); // 🔹 Replace with your Cloudinary upload preset
+    formData.append("cloud_name", "cloud_name"); // 🔹 Replace with your Cloudinary cloud name
+
+    // Send request to Cloudinary API
+    const response = await fetch("https://api.cloudinary.com/v1_1/<cloud_name>/image/upload", {
+      method: "POST",
+      body: formData
+    });
+
+    const data = await response.json();
+    
+
+    if (data.secure_url) {
+      console.log("Photo uploaded to Cloudinary:", data.secure_url);
+      return data.secure_url; // Return Cloudinary image URL
+    } else {
+      throw new Error("Cloudinary upload failed");
+    }
+
   } catch (error) {
     console.error("Upload Error:", error);
-    Swal.fire("Error!", "Image upload failed. Try again.", "error");
+    Swal.fire("Error!", "Image upload to Cloudinary failed. Try again.", "error");
     return null;
   }
 }
 
-// ✅ Function to handle sign-up
+
+// Function to handle sign-up
 async function signUpUser(event) {
   event.preventDefault();
 
@@ -49,29 +68,33 @@ async function signUpUser(event) {
 
   if (name && branch && number && email && password && photoFile) {
     try {
-      // ✅ Create user in Firebase Authentication
+      // Create user in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       console.log("User created:", user);
 
-      // ✅ Upload Image and get URL
-      const photoURL = await uploadImage(photoFile, user.uid);
+      // Upload Image to Cloudinary and get URL
+      const photoURL = await uploadImageToCloudinary(photoFile);
+
+      console.log("PhotoURL:", photoURL);
+      
       if (!photoURL) {
-        throw new Error("Failed to upload image");
+        throw new Error("Failed to upload image to Cloudinary");
       }
 
-      // ✅ Store user data in Firestore
+      // Store user data in Firestore with Cloudinary image URL
       console.log("Storing user data in Firestore...");
       await setDoc(doc(db, "students", user.uid), {
         name: name,
         branch: branch,
         number: number,
         email: email,
-        photoURL: photoURL // ✅ Store photoURL correctly
+        photoURL: photoURL // Store Cloudinary image URL
       });
 
       console.log("User data stored successfully in Firestore!");
       Swal.fire("Success!", "User registered successfully!", "success");
+
     } catch (error) {
       console.error("Error:", error);
       Swal.fire("Error!", error.message, "error");
@@ -81,7 +104,8 @@ async function signUpUser(event) {
   }
 }
 
-// ✅ Function to handle login
+
+// Function to handle login
 async function loginUser(event) {
   event.preventDefault();
 
@@ -90,10 +114,10 @@ async function loginUser(event) {
 
   if (email && password) {
     try {
-      // ✅ Sign in user
+      // Sign in user
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       Swal.fire("Success!", "Login successful!", "success").then(() => {
-        window.location.href = "student.html"; // ✅ Redirect to student dashboard
+        window.location.href = "student.html"; // Redirect to student dashboard
       });
     } catch (error) {
       Swal.fire("Error!", error.message, "error");
@@ -104,6 +128,6 @@ async function loginUser(event) {
   }
 }
 
-// ✅ Attach event listeners
+// Attach event listeners
 document.querySelector('.sign-up button').addEventListener("click", signUpUser);
 document.querySelector('.login button').addEventListener("click", loginUser);
