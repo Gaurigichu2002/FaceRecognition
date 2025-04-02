@@ -29,10 +29,10 @@ async function uploadImageToCloudinary(photoFile) {
     const formData = new FormData();
     formData.append("file", photoFile);
     formData.append("upload_preset", "my_upload_preset"); // 🔹 Replace with your Cloudinary upload preset
-    formData.append("cloud_name", "cloud_name"); // 🔹 Replace with your Cloudinary cloud name
+    formData.append("cloud_name", "difzqacg4"); // 🔹 Replace with your Cloudinary cloud name
 
     // Send request to Cloudinary API
-    const response = await fetch("https://api.cloudinary.com/v1_1/<cloud_name>/image/upload", {
+    const response = await fetch("https://api.cloudinary.com/v1_1/difzqacg4/image/upload", {
       method: "POST",
       body: formData
     });
